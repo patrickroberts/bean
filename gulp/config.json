@@ -9,7 +9,8 @@
   },
   "names": {
     "js": {
-      "app": "bean.min.js"
+      "app": "bean.min.js",
+      "glob": "bean"
     }
   }
 }

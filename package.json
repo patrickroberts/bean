@@ -1,8 +1,12 @@
 {
   "name": "bean",
-  "version": "0.0.0",
-  "description": "A byte-encoded golfing language for JavaScript",
+  "version": "0.0.1",
+  "description": "An esoteric byte-encoded code-golfing language derived from JavaScript",
   "main": "src/bean.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/patrickroberts/bean.git"
+  },
   "scripts": {
     "prepublish": "not-in-install && gulp browserify || in-install"
   },

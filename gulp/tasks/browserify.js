@@ -14,6 +14,7 @@ gulp.task('browserify', function () {
   let b = browserify({
     entries: config.paths.js.entry,
     debug: true,
+    standalone: config.names.js.glob,
     transform: [
       babelify.configure({
         presets: ['es2015'],
