@@ -1,0 +1,15 @@
+{
+  "paths": {
+    "project": "./",
+    "js": {
+      "entry": "./src/bean.js",
+      "dest": "./assets/js",
+      "all": "./assets/js/**/*.js"
+    }
+  },
+  "names": {
+    "js": {
+      "app": "bean.min.js"
+    }
+  }
+}
