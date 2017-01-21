@@ -17,7 +17,7 @@ $(function () {
         byteCode[index] = string.charCodeAt(index);
       }
 
-      $('#hexdump').val(toHexdump(byteCode));
+      autogrow.call($('#hexdump').val(toHexdump(byteCode)).get(0));
       updateHexdump();
     }
 
