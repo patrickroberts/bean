@@ -1,0 +1,14 @@
+.navbar-brand img {
+  width: 20px;
+  height: 20px;
+  display: inline-block;
+}
+
+body {
+  padding-top: 70px;
+}
+
+textarea {
+  font-family: monospace;
+  resize: none;
+}
