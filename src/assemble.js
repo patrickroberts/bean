@@ -5,7 +5,7 @@ const byteCodeToNodeTypeMap = new Map();
 
 const MAX_LITERALS = 0x7F00;
 
-const Interpreter = module.exports = class Interpreter {
+const Assembler = module.exports = class Assembler {
   constructor(byteCode) {
     this.byteCode = byteCode;
     this.byteIndex = 0;
@@ -429,12 +429,12 @@ const Interpreter = module.exports = class Interpreter {
   VariableDeclaration() {
     const code = this.nextByte(true);
 
-    let kind = Interpreter.DECLARE.length;
+    let kind = Assembler.DECLARE.length;
 
     while (((code >> --kind) & 0x01) === 0x00)
       ;
 
-    this.tokens.push(Interpreter.DECLARE[kind], ' ');
+    this.tokens.push(Assembler.DECLARE[kind], ' ');
 
     while (!this.isLast()) {
       this.decodeByte();
@@ -582,7 +582,7 @@ const Interpreter = module.exports = class Interpreter {
       (code >> 0) & 1,
     ];
 
-    const type = Interpreter.METHOD[kind];
+    const type = Assembler.METHOD[kind];
 
     switch (type) {
     case 'get':
@@ -679,7 +679,7 @@ const Interpreter = module.exports = class Interpreter {
       (code >> 0) & 31,
     ];
 
-    const token = Interpreter.UNARY[operator];
+    const token = Assembler.UNARY[operator];
     const space = /^[a-z]+$/.test(token) ? ' ' : '';
 
     if (prefix) {
@@ -701,13 +701,13 @@ const Interpreter = module.exports = class Interpreter {
     ];
 
     if (prefix) {
-      this.tokens.push(Interpreter.UPDATE[operator]);
+      this.tokens.push(Assembler.UPDATE[operator]);
 
       this.decodeByte();
     } else {
       this.decodeByte();
 
-      this.tokens.push(Interpreter.UPDATE[operator]);
+      this.tokens.push(Assembler.UPDATE[operator]);
     }
   }
 
@@ -717,7 +717,7 @@ const Interpreter = module.exports = class Interpreter {
     const code = this.nextByte(true);
     const operator = (code >> 0) & 31;
 
-    const token = Interpreter.BINARY[operator];
+    const token = Assembler.BINARY[operator];
     const space = /^[a-z]+$/.test(token) ? ' ' : '';
 
     this.tokens.push(space, token, space);
@@ -733,7 +733,7 @@ const Interpreter = module.exports = class Interpreter {
     const code = this.nextByte(true);
     const operator = (code >> 0) & 31;
 
-    this.tokens.push(Interpreter.ASSIGNMENT[operator]);
+    this.tokens.push(Assembler.ASSIGNMENT[operator]);
 
     this.decodeByte();
 
@@ -746,7 +746,7 @@ const Interpreter = module.exports = class Interpreter {
     const code = this.nextByte(true);
     const operator = (code >> 0) & 31;
 
-    this.tokens.push(Interpreter.LOGICAL[operator]);
+    this.tokens.push(Assembler.LOGICAL[operator]);
 
     this.decodeByte();
   }
@@ -943,7 +943,7 @@ const Interpreter = module.exports = class Interpreter {
       (code >> 0) & 1,
     ];
 
-    const type = Interpreter.METHOD[kind];
+    const type = Assembler.METHOD[kind];
 
     if (isStatic) {
       this.tokens.push('static', ' ');
@@ -1052,13 +1052,13 @@ const Interpreter = module.exports = class Interpreter {
   }
 };
 
-Interpreter.DECLARE = ["var", "let", "const"];
-Interpreter.METHOD = ["get", "set", "method", "constructor"];
-Interpreter.UNARY = ["-", "+", "!", "~", "typeof", "void", "delete"];
-Interpreter.UPDATE = ["++", "--"];
-Interpreter.BINARY = ["==", "!=", "===", "!==", "<", "<=", ">", ">=", "<<", ">>", ">>>", "+", "-", "*", "/", "%", "|", "^", "&", "in", "instanceof"];
-Interpreter.ASSIGNMENT = ["=", "+=", "-=", "*=", "/=", "%=", "<<=", ">>=", ">>>=", "|=", "^=", "&="];
-Interpreter.LOGICAL = ["||", "&&"];
+Assembler.DECLARE = ["var", "let", "const"];
+Assembler.METHOD = ["get", "set", "method", "constructor"];
+Assembler.UNARY = ["-", "+", "!", "~", "typeof", "void", "delete"];
+Assembler.UPDATE = ["++", "--"];
+Assembler.BINARY = ["==", "!=", "===", "!==", "<", "<=", ">", ">=", "<<", ">>", ">>>", "+", "-", "*", "/", "%", "|", "^", "&", "in", "instanceof", "**"];
+Assembler.ASSIGNMENT = ["=", "+=", "-=", "*=", "/=", "%=", "<<=", ">>=", ">>>=", "|=", "^=", "&="];
+Assembler.LOGICAL = ["||", "&&"];
 
 nodeTypes.forEach((type, index) => {
   const byteCode = index + 32;

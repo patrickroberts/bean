@@ -13,11 +13,17 @@ Also works in-browser thanks to `browserify` and is ES5-compatible:
 ```html
 <script src="bean.min.js"></script>
 <script>
-  var source = document.querySelector('input#source').value;
+  var source = '[a+b,A+B,_,$]';
   var uint8array = bean.compile(source);
-  var string = bean.interpret(uint8array);
+  var byteCount = uint8array.byteLength;
+  var assembly = bean.assemble(uint8array);
+  var program = bean.program(uint8array);
+  var input = '3\n4';
+  var output = program(input);
 
-  eval(string);
+  byteCount === 19
+  assembly === '[a+b,A+B,_,$,];'
+  JSON.stringify(output) === '["34",7,["3","4"],[3,4]]'
 </script>
 ```
 
