@@ -57,7 +57,7 @@ const Interpreter = module.exports = class Interpreter {
       this.tokens.push(identifiers[index]);
     // program-specific identifier
     } else {
-      const index = this.nextByte(true) + (code - 0x81) * 0x100 - 1;
+      const index = this.nextByte(true) + (code - 0x81) * 0x100;
       // toString invoked in post-processing of tokens when joined
       // must parse program-specific literals first
       this.tokens.push({
@@ -556,23 +556,21 @@ const Interpreter = module.exports = class Interpreter {
       (code >> 2) & 1,
     ];
 
-    if (computed) {
-      this.tokens.push('[');
-    }
-
-    this.decodeByte();
-
-    if (computed) {
-      this.tokens.push(']');
-    }
-
-    if (!last) {
-      if (!shorthand) {
-        this.tokens.push(':');
+    if (!last && !shorthand) {
+      if (computed) {
+        this.tokens.push('[');
       }
 
       this.decodeByte();
+
+      if (computed) {
+        this.tokens.push(']');
+      }
+
+      this.tokens.push(':');
     }
+
+    this.decodeByte();
   }
 
   ObjectMethod() {
@@ -928,8 +926,6 @@ const Interpreter = module.exports = class Interpreter {
 
     while (!this.isLast()) {
       this.decodeByte();
-
-      this.tokens.push(',');
     }
 
     this.decodeByte();
@@ -939,14 +935,19 @@ const Interpreter = module.exports = class Interpreter {
 
   ClassMethod() {
     const code = this.nextByte(true);
-    const [kind, computed, generator, async] = [
+    const [kind, isStatic, computed, generator, async] = [
       (code >> 5) & 3,
+      (code >> 4) & 1,
       (code >> 2) & 1,
       (code >> 1) & 1,
       (code >> 0) & 1,
     ];
 
     const type = Interpreter.METHOD[kind];
+
+    if (isStatic) {
+      this.tokens.push('static', ' ');
+    }
 
     switch (type) {
     case 'get':

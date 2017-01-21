@@ -1,4 +1,4 @@
-# <img src="http://i.imgur.com/RL0RVy6.png" /> Bean-js
+# <img src="https://i.imgur.com/RL0RVy6.png" /> Bean-js
 
 ### _An esoteric byte-encoded code-golfing language derived from JavaScript_
 
@@ -21,6 +21,10 @@ Also works in-browser thanks to `browserify` and is ES5-compatible:
 </script>
 ```
 
+Online interpreter available [here][github].
+
 #### License
 
 Copyright (c) 2017 Patrick Roberts
+
+[github]: https://patrickroberts.github.io/bean

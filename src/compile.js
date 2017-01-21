@@ -37,13 +37,13 @@ const Compiler = module.exports = class Compiler {
 
     // program-specific identifier
     if (index < 0) {
-      index = this.literals.indexOf(string) + 1;
+      index = this.literals.indexOf(string);
 
-      if (index === 0) {
-        index = this.literals.push(string);
+      if (index < 0) {
+        index = this.literals.push(string) - 1;
       }
 
-      byteCode |= (index - (index % 0x100)) / 0x100 + 1;
+      byteCode += (index - (index % 0x100)) / 0x100 + 1;
 
       index = index % 0x100;
     }
@@ -499,11 +499,11 @@ const Compiler = module.exports = class Compiler {
 
     this.byteCode.push(0x80 | (shorthand << 3) | (computed << 2));
 
-    this[key.type](key, shorthand);
-
     if (!shorthand) {
-      this[value.type](value);
+      this[key.type](key, false);
     }
+
+    this[value.type](value);
   }
 
   ObjectMethod(node, last = true) {
@@ -788,13 +788,18 @@ const Compiler = module.exports = class Compiler {
   }
 
   ClassMethod(node, last = true) {
-    const {type, computed, kind, key, body} = node;
+    const {type, computed, kind, key, params = [], body} = node;
 
     this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
 
     this.byteCode.push(0x80 | (Compiler.METHOD[kind] << 5) | (node['static'] << 4) | (computed << 2));
 
     this[key.type](key, false);
+
+    params.forEach((param, index) => {
+      this[param.type](param, false);
+    });
+
     this[body.type](body);
   }
 
