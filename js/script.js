@@ -137,7 +137,7 @@ $(function () {
     var inputs = $('#input').val().split(/\r?\n/g);
 
     var array = inputs.map(function escape(string, index) {
-      return '"' + string.replace(/"/g, '\\"') + '"';
+      return '"' + string.replace(/["\\]/g, '\\$&') + '"';
     });
 
     var parsed = inputs.map(function parse(string, index) {
@@ -160,7 +160,7 @@ $(function () {
     }, '');
 
     script += parsed.reduce(function concat(script, json, index) {
-      return script + (json ? getIdentifier(index, true) + '='  : '') + json + ',';
+      return script + (json ? getIdentifier(index, true) + '=' + json + ',' : '');
     }, '');
 
     script += '_=' + JSON.stringify(array) + ',';
@@ -236,7 +236,7 @@ $(function () {
     $('#output').val('');
 
     try {
-      var program = new Function('', generateInput() + 'return eval("' + bean.interpret(byteCode).replace(/"/g, '\\"') + '")');
+      var program = new Function('', generateInput() + 'return eval("' + bean.interpret(byteCode).replace(/["\\]/g, '\\$&') + '")');
       var output = program();
 
       if (output !== undefined) {
