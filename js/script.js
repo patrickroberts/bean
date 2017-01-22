@@ -1,96 +1,75 @@
 $(function () {
   var source = '';
-  var byteCode = new Uint8Array(0);
+  var binary = '';
+
+  $.fn.autogrow = function autogrow() {
+    this.filter('textarea').each(function () {
+      while (this.clientHeight === this.scrollHeight && this.rows > 1) {
+        this.rows--;
+      }
+
+      while (this.clientHeight < this.scrollHeight) {
+        this.rows++;
+      }
+    });
+
+    return this;
+  };
 
   parseLink();
 
   function parseLink() {
-    var match, string, length, index;
+    var match;
 
     if ((match = /h=(.*?)(?:&|$)/.exec(location.hash)) !== null) {
-      string = atob(match[1]);
-      length = string.length;
-
-      byteCode = new Uint8Array(length);
-
-      for (index = 0; index < length; index++) {
-        byteCode[index] = string.charCodeAt(index);
-      }
-
-      autogrow.call($('#hexdump').val(toHexdump(byteCode)).get(0));
-      updateHexdump();
+      binary = atob(match[1]);
+      source = bean.assemble(binary);
     }
 
     if ((match = /i=(.*?)(?:&|$)/.exec(location.hash)) !== null) {
-      string = atob(match[1]);
-      autogrow.call($('#input').val(string).get(0));
+      $('#input').val(atob(match[1])).autogrow();
     }
 
     updateStatus();
   }
 
   function updateStatus() {
+    $('#js').text(source.length);
+    $('#bn').text(binary.length);
+    $('#javascript').val(source).autogrow();
+    $('#binary').val(binary).autogrow();
+    $('#hexdump').val(toHexdump(binary)).autogrow();
+
     updateLink();
-    updateByteCount();
   }
 
   function updateLink() {
     var input  = $('#input').val();
-    var length = byteCode.byteLength;
-    var string = '';
-
-    for (var index = 0; index < length; index++) {
-      string += String.fromCharCode(byteCode[index]);
-    }
-
-    string = '#h=' + btoa(string) + '&i=' + btoa(input);
+    var string = '#h=' + btoa(binary) + '&i=' + btoa(input);
 
     history.pushState({}, 'Bean Interpreter', string);
 
     $('#permalink').val('https://patrickroberts.github.io/bean' + string);
   }
 
-  function updateByteCount() {
-    $('#js').text(source.length);
-    $('#hd').text(byteCode.byteLength);
-  }
-
-  function updateHexdump() {
-    var $js = $('#javascript');
-    var js;
-
-    try {
-      var uint8Array = fromHexdump($('#hexdump').val());
-
-      source = bean.assemble(uint8Array);
-      byteCode = uint8Array;
-
-      js = source;
-    } catch (error) {
-      js = error.toString();
-    }
-
-    autogrow.call($js.val(js).get(0));
-  }
-
   function fromHexdump(string) {
     var pattern = /^([\da-f]{7,8})(?:: *)?((?: +[\da-f]{2}){0,16})/gim;
-    var array = [];
+    var string = '';
     var line, match;
 
     while ((line = pattern.exec(string)) !== null) {
       var inner = / +([\da-f]{2})/gi;
 
       while ((match = inner.exec(line[2])) !== null) {
-        array.push(parseInt(match[1], 16));
+        string += String.fromCharCode(parseInt(match[1], 16));
       }
     }
 
-    return Uint8Array.from(array);
+    return string;
   }
 
-  function toHexdump(byteCode) {
-    var length = byteCode.byteLength;
+  function toHexdump(binary) {
+    var length = binary.length;
     var string = '';
     var charCode, row, col;
 
@@ -99,7 +78,7 @@ $(function () {
 
       if (row < length) {
         for (col = 0; col < Math.min(length - row, 16); col++) {
-          string += ' ' + ('0' + byteCode[row + col].toString(16)).substr(-2);
+          string += ' ' + ('0' + binary.charCodeAt(row + col).toString(16)).substr(-2);
         }
 
         for (; col < Math.min(length, 16); col++) {
@@ -109,7 +88,7 @@ $(function () {
         string += '  ';
 
         for (col = 0; col < Math.min(length - row, 16); col++) {
-          charCode = byteCode[row + col];
+          charCode = binary.charCodeAt(row + col);
 
           if (charCode >= 0x20 && charCode <= 0x7E || charCode >= 0xA0 && charCode !== 0xAD) {
             string += String.fromCharCode(charCode);
@@ -125,15 +104,50 @@ $(function () {
     return string;
   }
 
-  function autogrow() {
-    while (this.clientHeight === this.scrollHeight && this.rows > 1) {
-      this.rows--;
-    }
+  $(window).bind('hashchange', parseLink);
 
-    while (this.clientHeight < this.scrollHeight) {
-      this.rows++;
+  $('#javascript').on('change', function updateJavascript(event) {
+    $('#output').val('');
+
+    try {
+      var string = $('#javascript').val();
+
+      binary = bean.compile(string);
+      source = string;
+    } catch (error) {
+      $('#output').val(error.toString()).autogrow();
+    }
+  });
+
+  function updateBinary() {
+    $('#output').val('');
+
+    try {
+      var string = $('#binary').val();
+
+      source = bean.assemble(string);
+      binary = string;
+    } catch (error) {
+      $('#output').val(error.toString()).autogrow();
     }
   }
+
+  $('#binary').on('change', updateBinary);
+
+  $('#hexdump').on('change', function updateHexdump() {
+    $('#output').val('');
+
+    try {
+      var string = fromHexdump($('#hexdump').val());
+
+      source = bean.assemble(string);
+      binary = string;
+    } catch (error) {
+      $('#output').val(error.toString()).autogrow();
+    }
+  });
+
+  $('textarea').on('input', function autogrow() { $(this).autogrow(); }).on('change', updateStatus);
 
   function formatOutput() {
     var array = [];
@@ -141,49 +155,25 @@ $(function () {
     for (var i = 0, length = arguments.length; i < length; i++) {
       var argument = arguments[i];
 
-      array.push(JSON.stringify(argument && argument.hasOwnProperty && argument.hasOwnProperty('toString') ? argument.toString() : argument));
+      array.push(argument !== undefined && argument !== null ? JSON.stringify(argument.hasOwnProperty && argument.hasOwnProperty('toString') ? argument.toString() : argument) : argument + '');
     }
 
     var output = $('#output').val();
 
-    autogrow.call($('#output').val(output + (output.length > 0 ? '\n' : '') + array.join(', ')).get(0));
+    $('#output').val(output + (output.length > 0 ? '\n' : '') + array.join(', ')).autogrow();
   }
-
-  $(window).bind('hashchange', parseLink);
-
-  $('#javascript').on('change', function change(event) {
-    var $hd = $('#hexdump');
-    var hd;
-
-    try {
-      byteCode = bean.compile(this.value);
-      source = this.value;
-
-      hd = toHexdump(byteCode);
-    } catch (error) {
-      hd = error.toString();
-    }
-
-    autogrow.call($hd.val(hd).get(0));
-  });
-
-  $('#hexdump').on('change', updateHexdump);
-
-  $('textarea').on('input', autogrow).on('change', updateStatus);
 
   $('[data-toggle="run"]').on('click', function click(event) {
     var log = console.log;
     console.log = formatOutput;
 
-    autogrow.call($('#output').val('').get(0));
+    $('#output').val('').autogrow();
 
     try {
-      var program = bean.program(byteCode);
+      var program = bean.program(binary);
       var output = program($('#input').val());
 
-      if (output !== undefined) {
-        console.log(output);
-      }
+      console.log(output);
     } catch (error) {
       console.log(error.toString());
     }
@@ -204,5 +194,7 @@ $(function () {
       .select()
       .get(0)
       .scrollIntoView();
+
+    document.execCommand('copy');
   });
 });
