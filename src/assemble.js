@@ -125,7 +125,7 @@ const Assembler = module.exports = class Assembler {
     const literal = this.tokens.pop();
 
     this.tokens.push({
-      toString: () => literal.toString().replace(/"/g, '\\"')
+      toString: () => literal.toString().replace(/["\\]/g, '\\$&').replace(/\r?\n/g, '\\n')
     });
     this.tokens.push('"');
   }
@@ -773,7 +773,7 @@ const Assembler = module.exports = class Assembler {
     const literal = this.tokens.pop();
 
     this.tokens.push({
-      toString: () => literal.toString().replace(/`/g, '\\`')
+      toString: () => literal.toString().replace(/[`\\]/g, '\\$&').replace(/\r?\n/g, '\\n')
     });
   }
 

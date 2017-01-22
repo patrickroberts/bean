@@ -1,21 +1,25 @@
-const babylon = require('babylon');
-
 const initialize = require('./input');
 const Compiler = require('./compile');
 const Assembler = require('./assemble');
 
-module.exports = {
+const bean = module.exports = {
+  Compiler, Assembler,
+
   compile(source) {
-    return new Compiler(babylon.parse(source)).binary;
+    return new bean.Compiler(source).binary;
   },
 
   assemble(binary) {
-    return new Assembler(binary).tokens.join('');
+    return new bean.Assembler(binary).tokens.join('');
   },
 
   program(binary) {
     return (stdin = '') => {
-      return new Function('', 'return eval("' + (initialize(stdin) + this.assemble(binary)).replace(/["\\]/g, '\\$&') + '")')();
+      const init = initialize(stdin);
+      const exec = bean.assemble(binary);
+      const body = (init + exec).replace(/["\\]/g, '\\$&').replace(/\r?\n/g, '\\n');
+
+      return new Function('', 'return eval("' + body + '")')();
     };
-  }
+  },
 };

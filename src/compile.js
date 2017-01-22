@@ -1,3 +1,5 @@
+const babylon = require('babylon');
+
 const globals = require('../config/globals.json');
 const identifiers = require('../config/identifiers.json');
 const nodeTypes = require('../config/ast.json');
@@ -6,7 +8,9 @@ const nodeTypeToByteCodeMap = new Map();
 const MAX_LITERALS = 0x7F00;
 
 const Compiler = module.exports = class Compiler {
-  constructor(ast) {
+  constructor(source) {
+    const ast = babylon.parse(source);
+
     this.binary = '';
     this.literals = [];
     this[ast.program.type](ast.program);
