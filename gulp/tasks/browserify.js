@@ -12,9 +12,9 @@ const gutil = require('gulp-util');
 gulp.task('browserify', function () {
   // set up the browserify instance on a task basis
   let b = browserify({
-    entries: config.paths.js.entry,
+    entries: config.paths.entry,
     debug: true,
-    standalone: config.names.js.glob,
+    standalone: config.names.glob,
     transform: [
       babelify.configure({
         presets: ['es2015'],
@@ -24,12 +24,12 @@ gulp.task('browserify', function () {
   });
 
   return b.bundle()
-    .pipe(source(config.names.js.app))
+    .pipe(source(config.names.app))
     .pipe(buffer())
     .pipe(sourcemaps.init({loadMaps: true}))
       // Add transformation tasks to the pipeline here.
       .pipe(uglify())
       .on('error', gutil.log)
     .pipe(sourcemaps.write('./'))
-    .pipe(gulp.dest(config.paths.js.dest));
+    .pipe(gulp.dest(config.paths.dest));
 });

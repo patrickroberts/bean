@@ -6,15 +6,16 @@ const byteCodeToNodeTypeMap = new Map();
 const MAX_LITERALS = 0x7F00;
 
 const Assembler = module.exports = class Assembler {
-  constructor(byteCode) {
-    this.byteCode = byteCode;
+  constructor(binary) {
+    this.binary = binary;
     this.byteIndex = 0;
     this.tokens = [];
     this.literals = [];
 
     while (!this.decodeByte()) {}
 
-    this.byteCode.subarray(this.byteIndex).reduce((literal, code, byteIndex) => {
+    this.binary.substr(this.byteIndex).split('').reduce((literal, character, byteIndex) => {
+      const code = character.charCodeAt(0);
       const last = this.isLast(code);
 
       literal += String.fromCharCode(code & 0x7F);
@@ -71,7 +72,7 @@ const Assembler = module.exports = class Assembler {
   }
 
   nextByte(postIncrement = false) {
-    return this.byteCode[postIncrement ? this.byteIndex++ : this.byteIndex];
+    return this.binary.charCodeAt(postIncrement ? this.byteIndex++ : this.byteIndex);
   }
 
   lastToken() {
@@ -86,7 +87,6 @@ const Assembler = module.exports = class Assembler {
     const code = this.nextByte(true);
 
     this.tokens.push('/');
-
     this.decodeLiteral();
 
     const literal = this.tokens.pop();
@@ -94,7 +94,6 @@ const Assembler = module.exports = class Assembler {
     this.tokens.push({
       toString: () => literal.toString().replace(/\//g, '\\/')
     });
-
     this.tokens.push('/');
 
     const [g, i, m, u, y] = [
@@ -104,7 +103,6 @@ const Assembler = module.exports = class Assembler {
       (code >> 3) & 1,
       (code >> 4) & 1,
     ];
-
     const flags = [
       (g ? 'g' : ''),
       (i ? 'i' : ''),
@@ -122,7 +120,6 @@ const Assembler = module.exports = class Assembler {
 
   StringLiteral() {
     this.tokens.push('"');
-
     this.decodeLiteral();
 
     const literal = this.tokens.pop();
@@ -130,7 +127,6 @@ const Assembler = module.exports = class Assembler {
     this.tokens.push({
       toString: () => literal.toString().replace(/"/g, '\\"')
     });
-
     this.tokens.push('"');
   }
 
@@ -146,15 +142,13 @@ const Assembler = module.exports = class Assembler {
 
   ExpressionStatement() {
     this.decodeByte();
-
     this.tokens.push(';');
   }
 
   BlockStatement() {
     this.tokens.push('{');
 
-    while (!this.decodeByte())
-      ;
+    while (!this.decodeByte()) {}
 
     this.tokens.push('}');
   }
@@ -169,11 +163,8 @@ const Assembler = module.exports = class Assembler {
 
   WithStatement() {
     this.tokens.push('with', '(');
-
     this.decodeByte();
-
     this.tokens.push(')');
-
     this.decodeByte();
   }
 
@@ -187,15 +178,12 @@ const Assembler = module.exports = class Assembler {
     }
 
     this.decodeByte();
-
     this.tokens.push(';');
   }
 
   LabeledStatement() {
     this.decodeByte();
-
     this.tokens.push(':');
-
     this.decodeByte();
   }
 
@@ -209,7 +197,6 @@ const Assembler = module.exports = class Assembler {
     }
 
     this.decodeByte();
-
     this.tokens.push(';');
   }
 
@@ -223,20 +210,16 @@ const Assembler = module.exports = class Assembler {
     }
 
     this.decodeByte();
-
     this.tokens.push(';');
   }
 
   IfStatement() {
     this.tokens.push('if', '(');
-
     this.decodeByte();
-
     this.tokens.push(')');
 
     if (!this.decodeByte()) {
       this.tokens.push('else', ' ');
-
       this.decodeByte();
     }
   }
@@ -275,61 +258,46 @@ const Assembler = module.exports = class Assembler {
 
   ThrowStatement() {
     this.tokens.push('throw', ' ');
-
     this.decodeByte();
-
     this.tokens.push(';');
   }
 
   TryStatement() {
     this.tokens.push('try');
-
     this.decodeByte();
 
     const last = this.decodeByte();
 
     if (!last) {
       this.tokens.push('finally');
-
       this.decodeByte();
     }
   }
 
   CatchClause() {
     this.tokens.push('catch', '(');
-
     this.decodeByte();
-
     this.tokens.push(')');
-
     this.decodeByte();
   }
 
   WhileStatement() {
     this.tokens.push('while', '(');
-
     this.decodeByte();
-
     this.tokens.push(')');
-
     this.decodeByte();
   }
 
   DoWhileStatement() {
     this.tokens.push('do', ' ');
-
     this.decodeByte();
-
     this.tokens.push('while', '(');
-
     this.decodeByte();
-
     this.tokens.push(')');
   }
 
   ForStatement() {
     this.tokens.push('for', '(');
-
     this.decodeByte();
 
     if (this.lastToken() !== ';') {
@@ -337,61 +305,41 @@ const Assembler = module.exports = class Assembler {
     }
 
     this.decodeByte();
-
     this.tokens.push(';');
-
     this.decodeByte();
-
     this.tokens.push(')');
-
     this.decodeByte();
   }
 
   ForInStatement() {
     this.tokens.push('for', '(');
-
     this.decodeByte();
-
     this.tokens.push(' ', 'in', ' ');
-
     this.decodeByte();
-
     this.tokens.push(')');
-
     this.decodeByte();
   }
 
   ForOfStatement() {
     this.tokens.push('for', '(');
-
     this.decodeByte();
-
     this.tokens.push(' ', 'of', ' ');
-
     this.decodeByte();
-
     this.tokens.push(')');
-
     this.decodeByte();
   }
 
   ForAwaitStatement() {
     this.tokens.push('for', '(');
-
     this.decodeByte();
-
     this.tokens.push(' ', 'await', ' ');
-
     this.decodeByte();
-
     this.tokens.push(')');
-
     this.decodeByte();
   }
 
   FunctionDeclaration() {
     const code = this.nextByte(true);
-
     const [generator, async] = [
       (code >> 1) & 1,
       (code >> 0) & 1,
@@ -408,9 +356,7 @@ const Assembler = module.exports = class Assembler {
     }
 
     this.tokens.push(' ');
-
     this.decodeByte();
-
     this.tokens.push('(');
 
     while (!this.isLast()) {
@@ -422,7 +368,6 @@ const Assembler = module.exports = class Assembler {
     }
 
     this.tokens.push(')');
-
     this.decodeByte();
   }
 
@@ -431,19 +376,16 @@ const Assembler = module.exports = class Assembler {
 
     let kind = Assembler.DECLARE.length;
 
-    while (((code >> --kind) & 0x01) === 0x00)
-      ;
+    while (((code >> --kind) & 0x01) === 0x00) {}
 
     this.tokens.push(Assembler.DECLARE[kind], ' ');
 
     while (!this.isLast()) {
       this.decodeByte();
-
       this.tokens.push(',');
     }
 
     this.decodeByte();
-
     this.tokens.push(';');
   }
 
@@ -452,7 +394,6 @@ const Assembler = module.exports = class Assembler {
 
     if (!last) {
       this.tokens.push('=');
-
       this.decodeByte();
     }
   }
@@ -484,7 +425,6 @@ const Assembler = module.exports = class Assembler {
     }
 
     this.tokens.push(')', '=>');
-
     this.decodeByte();
   }
 
@@ -516,7 +456,6 @@ const Assembler = module.exports = class Assembler {
     }
 
     this.decodeByte();
-
     this.tokens.push(';');
   }
 
@@ -525,12 +464,10 @@ const Assembler = module.exports = class Assembler {
 
     while (!this.isLast()) {
       this.decodeByte();
-
       this.tokens.push(',');
     }
 
     this.decodeByte();
-
     this.tokens.push(']');
   }
 
@@ -539,12 +476,10 @@ const Assembler = module.exports = class Assembler {
 
     while (!this.isLast()) {
       this.decodeByte();
-
       this.tokens.push(',');
     }
 
     this.decodeByte();
-
     this.tokens.push('}');
   }
 
@@ -581,7 +516,6 @@ const Assembler = module.exports = class Assembler {
       (code >> 1) & 1,
       (code >> 0) & 1,
     ];
-
     const type = Assembler.METHOD[kind];
 
     switch (type) {
@@ -619,25 +553,21 @@ const Assembler = module.exports = class Assembler {
     }
 
     this.tokens.push(')');
-
     this.decodeByte();
   }
 
   RestProperty() {
     this.tokens.push('...');
-
     this.decodeByte();
   }
 
   SpreadProperty() {
     this.tokens.push('...');
-
     this.decodeByte();
   }
 
   FunctionExpression() {
     const code = this.nextByte(true);
-
     const [generator, async] = [
       (code >> 1) & 1,
       (code >> 0) & 1,
@@ -654,9 +584,7 @@ const Assembler = module.exports = class Assembler {
     }
 
     this.tokens.push(' ');
-
     this.decodeByte();
-
     this.tokens.push('(');
 
     while (!this.isLast()) {
@@ -668,7 +596,6 @@ const Assembler = module.exports = class Assembler {
     }
 
     this.tokens.push(')');
-
     this.decodeByte();
   }
 
@@ -678,17 +605,14 @@ const Assembler = module.exports = class Assembler {
       (code >> 6) & 1,
       (code >> 0) & 31,
     ];
-
     const token = Assembler.UNARY[operator];
     const space = /^[a-z]+$/.test(token) ? ' ' : '';
 
     if (prefix) {
       this.tokens.push(token, space);
-
       this.decodeByte();
     } else {
       this.decodeByte();
-
       this.tokens.push(space, token);
     }
   }
@@ -702,11 +626,9 @@ const Assembler = module.exports = class Assembler {
 
     if (prefix) {
       this.tokens.push(Assembler.UPDATE[operator]);
-
       this.decodeByte();
     } else {
       this.decodeByte();
-
       this.tokens.push(Assembler.UPDATE[operator]);
     }
   }
@@ -716,27 +638,22 @@ const Assembler = module.exports = class Assembler {
 
     const code = this.nextByte(true);
     const operator = (code >> 0) & 31;
-
     const token = Assembler.BINARY[operator];
     const space = /^[a-z]+$/.test(token) ? ' ' : '';
 
     this.tokens.push(space, token, space);
-
     this.decodeByte();
   }
 
   AssignmentExpression() {
     this.tokens.push('(');
-
     this.decodeByte();
 
     const code = this.nextByte(true);
     const operator = (code >> 0) & 31;
 
     this.tokens.push(Assembler.ASSIGNMENT[operator]);
-
     this.decodeByte();
-
     this.tokens.push(')');
   }
 
@@ -747,13 +664,11 @@ const Assembler = module.exports = class Assembler {
     const operator = (code >> 0) & 31;
 
     this.tokens.push(Assembler.LOGICAL[operator]);
-
     this.decodeByte();
   }
 
   SpreadElement() {
     this.tokens.push('...');
-
     this.decodeByte();
   }
 
@@ -765,13 +680,10 @@ const Assembler = module.exports = class Assembler {
 
     if (computed) {
       this.tokens.push('[');
-
       this.decodeByte();
-
       this.tokens.push(']');
     } else {
       this.tokens.push('.');
-
       this.decodeByte();
     }
   }
@@ -782,25 +694,19 @@ const Assembler = module.exports = class Assembler {
     }
 
     this.tokens.push('::');
-
     this.decodeByte();
   }
 
   ConditionalExpression() {
     this.decodeByte();
-
     this.tokens.push('?');
-
     this.decodeByte();
-
     this.tokens.push(':');
-
     this.decodeByte();
   }
 
   CallExpression() {
     let last = this.decodeByte();
-
     this.tokens.push('(');
 
     while (!last) {
@@ -816,9 +722,7 @@ const Assembler = module.exports = class Assembler {
 
   NewExpression() {
     this.tokens.push('new', ' ');
-
     let last = this.decodeByte();
-
     this.tokens.push('(');
 
     while (!last) {
@@ -837,12 +741,10 @@ const Assembler = module.exports = class Assembler {
 
     while (!this.isLast()) {
       this.decodeByte();
-
       this.tokens.push(',');
     }
 
     this.decodeByte();
-
     this.tokens.push(')');
   }
 
@@ -851,16 +753,12 @@ const Assembler = module.exports = class Assembler {
 
     while (!this.isLast()) {
       this.decodeByte();
-
       this.tokens.push('${');
-
       this.decodeByte();
-
       this.tokens.push('}');
     }
 
     this.decodeByte();
-
     this.tokens.push('`');
   }
 
@@ -884,12 +782,10 @@ const Assembler = module.exports = class Assembler {
 
     while (!this.isLast()) {
       this.decodeByte();
-
       this.tokens.push(',');
     }
 
     this.decodeByte();
-
     this.tokens.push('}');
   }
 
@@ -898,26 +794,21 @@ const Assembler = module.exports = class Assembler {
 
     while (!this.isLast()) {
       this.decodeByte();
-
       this.tokens.push(',');
     }
 
     this.decodeByte();
-
     this.tokens.push(']');
   }
 
   RestElement() {
     this.tokens.push('...');
-
     this.decodeByte();
   }
 
   AssignmentPattern() {
     this.decodeByte();
-
     this.tokens.push('=');
-
     this.decodeByte();
   }
 
@@ -929,7 +820,6 @@ const Assembler = module.exports = class Assembler {
     }
 
     this.decodeByte();
-
     this.tokens.push('}');
   }
 
@@ -942,7 +832,6 @@ const Assembler = module.exports = class Assembler {
       (code >> 1) & 1,
       (code >> 0) & 1,
     ];
-
     const type = Assembler.METHOD[kind];
 
     if (isStatic) {
@@ -988,7 +877,6 @@ const Assembler = module.exports = class Assembler {
     }
 
     this.tokens.push(')');
-
     this.decodeByte();
   }
 
@@ -1007,20 +895,16 @@ const Assembler = module.exports = class Assembler {
     }
 
     this.tokens.push('=');
-
     this.decodeByte();
-
     this.tokens.push(';');
   }
 
   ClassDeclaration() {
     this.tokens.push('class', ' ');
-
     this.decodeByte();
 
     if (!this.isLast()) {
       this.tokens.push(' ', 'extends', ' ');
-
       this.decodeByte();
     }
 
@@ -1031,12 +915,10 @@ const Assembler = module.exports = class Assembler {
     const space = this.nextByte() === 0x80 ? '' : ' ';
 
     this.tokens.push('class', space);
-
     this.decodeByte();
 
     if (!this.isLast()) {
       this.tokens.push(' ', 'extends', ' ');
-
       this.decodeByte();
     }
 
@@ -1045,9 +927,7 @@ const Assembler = module.exports = class Assembler {
 
   MetaProperty() {
     this.decodeByte();
-
     this.tokens.push('.');
-
     this.decodeByte();
   }
 };

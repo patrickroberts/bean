@@ -7,9 +7,8 @@ const MAX_LITERALS = 0x7F00;
 
 const Compiler = module.exports = class Compiler {
   constructor(ast) {
-    this.byteCode = [];
+    this.binary = '';
     this.literals = [];
-
     this[ast.program.type](ast.program);
 
     if (this.literals.length > MAX_LITERALS) {
@@ -17,8 +16,8 @@ const Compiler = module.exports = class Compiler {
     }
 
     for (const literal of this.literals) {
-      [...literal].forEach((character, index) => {
-        this.byteCode.push((index + 1 === literal.length ? 0x00 : 0x80) | character.charCodeAt(0));
+      literal.split('').forEach((character, index) => {
+        this.binary += String.fromCharCode((index + 1 === literal.length ? 0x00 : 0x80) | character.charCodeAt(0));
       });
     }
   }
@@ -31,7 +30,6 @@ const Compiler = module.exports = class Compiler {
     // predefined identifier
     if (index < 0) {
       index = identifiers.indexOf(string);
-
       byteCode = 0x80;
     }
 
@@ -44,67 +42,61 @@ const Compiler = module.exports = class Compiler {
       }
 
       byteCode += (index - (index % 0x100)) / 0x100 + 1;
-
       index = index % 0x100;
     }
 
-    this.byteCode.push(byteCode);
+    this.binary += String.fromCharCode(byteCode);
 
     // if non-global identifier
     if (byteCode >= 0x80) {
-      this.byteCode.push(index);
+      this.binary += String.fromCharCode(index);
     }
   }
 
   Identifier(node, last = true) {
     const {type, name} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     this.encodeLiteral(name);
   }
 
   RegExpLiteral(node, last = true) {
     const {type, pattern, flags} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
-    this.byteCode.push(0x80 |
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
+    this.binary += String.fromCharCode(0x80 |
       (flags.includes('y') << 4) |
       (flags.includes('u') << 3) |
       (flags.includes('m') << 2) |
       (flags.includes('i') << 1) |
       (flags.includes('g') << 0));
-
     this.encodeLiteral(pattern.replace(/\\\//g, '/'));
   }
 
   NullLiteral(node, last = true) {
     const {type} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
   }
 
   StringLiteral(node, last = true) {
     const {type, value} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     this.encodeLiteral(value);
   }
 
   BooleanLiteral(node, last = true) {
     const {type, value} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
-    this.byteCode.push(value ? 0x01 : 0x00);
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
+    this.binary += String.fromCharCode(value ? 0x01 : 0x00);
   }
 
   NumericLiteral(node, last = true) {
     const {type, value} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
 
     if (/\.$/.test(node.extra.raw)) {
       this.encodeLiteral(node.extra.raw);
@@ -122,51 +114,44 @@ const Compiler = module.exports = class Compiler {
     body.forEach((statement, index) => {
       this[statement.type](statement, index + 1 === body.length);
     });
-
-    if (body.length === 0) {
-      this.byteCode.push(0x00);
-    }
   }
 
   ExpressionStatement(node, last = true) {
     const {type, expression} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     this[expression.type](expression);
   }
 
   BlockStatement(node, last = true) {
     const {type, body = []} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     body.forEach((statement, index) => {
       this[statement.type](statement, index + 1 === body.length);
     });
 
     if (body.length === 0) {
-      this.byteCode.push(0x00);
+      this.binary += String.fromCharCode(0x00);
     }
   }
 
   EmptyStatement(node, last = true) {
     const {type} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
   }
 
   DebuggerStatement(node, last = true) {
     const {type} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
   }
 
   WithStatement(node, last = true) {
     const {type, object, body} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     this[object.type](object, false);
     this[body.type](body);
   }
@@ -174,20 +159,19 @@ const Compiler = module.exports = class Compiler {
   ReturnStatement(node, last = true) {
     const {type, argument} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
 
     if (argument !== null) {
       this[argument.type](argument);
     } else {
-      this.byteCode.push(0x00);
+      this.binary += String.fromCharCode(0x00);
     }
   }
 
   LabeledStatement(node, last = true) {
     const {type, label, body} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     this[label.type](label, false);
     this[body.type](body);
   }
@@ -195,32 +179,31 @@ const Compiler = module.exports = class Compiler {
   BreakStatement(node, last = true) {
     const {type, label} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
 
     if (label !== null) {
       this[label.type](label);
     } else {
-      this.byteCode.push(0x00);
+      this.binary += String.fromCharCode(0x00);
     }
   }
 
   ContinueStatement(node, last = true) {
     const {type, label} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
 
     if (label !== null) {
       this[label.type](label);
     } else {
-      this.byteCode.push(0x00);
+      this.binary += String.fromCharCode(0x00);
     }
   }
 
   IfStatement(node, last = true) {
     const {type, test, consequent, alternate} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     this[test.type](test, false);
     this[consequent.type](consequent, alternate === null);
 
@@ -232,10 +215,8 @@ const Compiler = module.exports = class Compiler {
   SwitchStatement(node, last = true) {
     const {type, discriminant, cases = []} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     this[discriminant.type](discriminant, cases.length === 0);
-
     cases.forEach((switchCase, index) => {
       this[switchCase.type](switchCase, index + 1 === cases.length);
     });
@@ -244,12 +225,12 @@ const Compiler = module.exports = class Compiler {
   SwitchCase(node, last = true) {
     const {type, test, consequent} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
 
     if (test !== null) {
       this[test.type](test, consequent.length === 0);
     } else {
-      this.byteCode.push(consequent.length === 0 ? 0x00 : 0x80);
+      this.binary += String.fromCharCode(consequent.length === 0 ? 0x00 : 0x80);
     }
 
     consequent.forEach((statement, index) => {
@@ -260,22 +241,20 @@ const Compiler = module.exports = class Compiler {
   ThrowStatement(node, last = true) {
     const {type, argument} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     this[argument.type](argument);
   }
 
   TryStatement(node, last = true) {
     const {type, block, handler, finalizer} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     this[block.type](block, false);
 
     if (handler !== null) {
       this[handler.type](handler, finalizer === null);
     } else {
-      this.byteCode.push(0x80);
+      this.binary += String.fromCharCode(0x80);
     }
 
     if (finalizer !== null) {
@@ -286,8 +265,7 @@ const Compiler = module.exports = class Compiler {
   CatchClause(node, last = true) {
     const {type, param, body} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     this[param.type](param, false);
     this[body.type](body);
   }
@@ -295,8 +273,7 @@ const Compiler = module.exports = class Compiler {
   WhileStatement(node, last = true) {
     const {type, test, body} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     this[test.type](test, false);
     this[body.type](body);
   }
@@ -304,8 +281,7 @@ const Compiler = module.exports = class Compiler {
   DoWhileStatement(node, last = true) {
     const {type, body, test} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     this[body.type](body, false);
     this[test.type](test);
   }
@@ -313,24 +289,24 @@ const Compiler = module.exports = class Compiler {
   ForStatement(node, last = true) {
     const {type, init, test, update, body} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
 
     if (init !== null) {
       this[init.type](init, false);
     } else {
-      this.byteCode.push(0x80);
+      this.binary += String.fromCharCode(0x80);
     }
 
     if (test !== null) {
       this[test.type](test, false);
     } else {
-      this.byteCode.push(0x80);
+      this.binary += String.fromCharCode(0x80);
     }
 
     if (update !== null) {
       this[update.type](update, false);
     } else {
-      this.byteCode.push(0x80);
+      this.binary += String.fromCharCode(0x80);
     }
 
     this[body.type](body);
@@ -339,8 +315,7 @@ const Compiler = module.exports = class Compiler {
   ForInStatement(node, last = true) {
     const {type, left, right, body} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     this[left.type](left, false);
     this[right.type](right, false);
     this[body.type](body);
@@ -349,8 +324,7 @@ const Compiler = module.exports = class Compiler {
   ForOfStatement(node, last = true) {
     const {type, left, right, body} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     this[left.type](left, false);
     this[right.type](right, false);
     this[body.type](body);
@@ -359,8 +333,7 @@ const Compiler = module.exports = class Compiler {
   ForAwaitStatement(node, last = true) {
     const {type, left, right, body} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     this[left.type](left, false);
     this[right.type](right, false);
     this[body.type](body);
@@ -369,40 +342,33 @@ const Compiler = module.exports = class Compiler {
   FunctionDeclaration(node, last = true) {
     const {type, id, params = [], body, generator, async} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
-    this.byteCode.push(0x80 | (generator << 1) | (async << 0));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
+    this.binary += String.fromCharCode(0x80 | (generator << 1) | (async << 0));
     this[id.type](id, false);
-
     params.forEach((param, index) => {
       this[param.type](param, false);
     });
-
     this[body.type](body);
   }
 
   VariableDeclaration(node, last = true) {
     const {type, declarations = [], kind} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
-    this.byteCode.push(0x80 | (1 << Compiler.DECLARE[kind]));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
+    this.binary += String.fromCharCode(0x80 | (1 << Compiler.DECLARE[kind]));
     declarations.forEach((declaration, index) => {
       this[declaration.type](declaration, index + 1 === declarations.length);
     });
 
     if (declarations.length === 0) {
-      this.byteCode.push(0x00);
+      this.binary += String.fromCharCode(0x00);
     }
   }
 
   VariableDeclarator(node, last = true) {
     const {type, id, init} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     this[id.type](id, init === null);
 
     if (init !== null) {
@@ -413,22 +379,20 @@ const Compiler = module.exports = class Compiler {
   Super(node, last = true) {
     const {type} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
   }
 
   ThisExpression(node, last = true) {
     const {type} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
   }
 
   ArrowFunctionExpression(node, last = true) {
     const {type, params = [], body, generator, async} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
-    this.byteCode.push(0x80 | (generator << 1) | (async << 0));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
+    this.binary += String.fromCharCode(0x80 | (generator << 1) | (async << 0));
     params.forEach((param, index) => {
       this[param.type](param, false);
     });
@@ -439,9 +403,8 @@ const Compiler = module.exports = class Compiler {
   YieldExpression(node, last = true) {
     const {type, argument, delegate} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
-    this.byteCode.push((argument === null ? 0x00 : 0x80) | (delegate << 0));
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
+    this.binary += String.fromCharCode((argument === null ? 0x00 : 0x80) | (delegate << 0));
 
     if (argument !== null) {
       this[argument.type](argument);
@@ -451,53 +414,50 @@ const Compiler = module.exports = class Compiler {
   AwaitExpression(node, last = true) {
     const {type, argument} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
 
     if (argument !== null) {
       this[argument.type](argument);
     } else {
-      this.byteCode.push(0x00);
+      this.binary += String.fromCharCode(0x00);
     }
   }
 
   ArrayExpression(node, last = true) {
     const {type, elements = []} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     elements.forEach((element, index) => {
       if (element !== null) {
         this[element.type](element, false);
       } else {
         // [,] behaves differently than [undefined,]
-        this.byteCode.push(0x80);
+        this.binary += String.fromCharCode(0x80);
       }
     });
 
     // therefore we must explicitly terminate elements
-    this.byteCode.push(0x00);
+    this.binary += String.fromCharCode(0x00);
   }
 
   ObjectExpression(node, last = true) {
     const {type, properties = []} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     properties.forEach((property, index) => {
       this[property.type](property, index + 1 === properties.length);
     });
 
     if (properties.length === 0) {
-      this.byteCode.push(0x00);
+      this.binary += String.fromCharCode(0x00);
     }
   }
 
   ObjectProperty(node, last = true) {
     const {type, key, value, computed, shorthand} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
-    this.byteCode.push(0x80 | (shorthand << 3) | (computed << 2));
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
+    this.binary += String.fromCharCode(0x80 | (shorthand << 3) | (computed << 2));
 
     if (!shorthand) {
       this[key.type](key, false);
@@ -509,126 +469,102 @@ const Compiler = module.exports = class Compiler {
   ObjectMethod(node, last = true) {
     const {type, key, params = [], body, async, computed, generator, kind} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
-    this.byteCode.push(0x80 | (Compiler.METHOD[kind] << 5) | (computed << 2) | (generator << 1) | (async << 0));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
+    this.binary += String.fromCharCode(0x80 | (Compiler.METHOD[kind] << 5) | (computed << 2) | (generator << 1) | (async << 0));
     this[key.type](key, false);
-
     params.forEach((param, index) => {
       this[param.type](param, false);
     });
-
     this[body.type](body);
   }
 
   RestProperty(node, last = true) {
     const {type, argument} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     this[argument.type](argument);
   }
 
   SpreadProperty(node, last = true) {
     const {type, argument} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     this[argument.type](argument);
   }
 
   FunctionExpression(node, last = true) {
     const {type, id, params = [], body, generator, async} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
-    this.byteCode.push(0x80 | (generator << 1) | (async << 0));
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
+    this.binary += String.fromCharCode(0x80 | (generator << 1) | (async << 0));
 
     if (id !== null) {
       this[id.type](id, false);
     } else {
-      this.byteCode.push(0x80);
+      this.binary += String.fromCharCode(0x80);
     }
 
     params.forEach((param, index) => {
       this[param.type](param, false);
     });
-
     this[body.type](body);
   }
 
   UnaryExpression(node, last = true) {
     const {type, operator, prefix, argument} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
-    this.byteCode.push(0x80 | (prefix << 6) | Compiler.UNARY[operator]);
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
+    this.binary += String.fromCharCode(0x80 | (prefix << 6) | Compiler.UNARY[operator]);
     this[argument.type](argument);
   }
 
   UpdateExpression(node, last = true) {
     const {type, operator, prefix, argument} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
-    this.byteCode.push(0x80 | (prefix << 6) | Compiler.UPDATE[operator]);
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
+    this.binary += String.fromCharCode(0x80 | (prefix << 6) | Compiler.UPDATE[operator]);
     this[argument.type](argument);
   }
 
   BinaryExpression(node, last = true) {
     const {type, operator, left, right} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     this[left.type](left, false);
-
-    this.byteCode.push(0x80 | Compiler.BINARY[operator]);
-
+    this.binary += String.fromCharCode(0x80 | Compiler.BINARY[operator]);
     this[right.type](right);
   }
 
   AssignmentExpression(node, last = true) {
     const {type, operator, left, right} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     this[left.type](left, false);
-
-    this.byteCode.push(0x80 | Compiler.ASSIGNMENT[operator]);
-
+    this.binary += String.fromCharCode(0x80 | Compiler.ASSIGNMENT[operator]);
     this[right.type](right);
   }
 
   LogicalExpression(node, last = true) {
     const {type, operator, left, right} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     this[left.type](left, false);
-
-    this.byteCode.push(0x80 | Compiler.LOGICAL[operator]);
-
+    this.binary += String.fromCharCode(0x80 | Compiler.LOGICAL[operator]);
     this[right.type](right);
   }
 
   SpreadElement(node, last = true) {
     const {type, argument} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     this[argument.type](argument);
   }
 
   MemberExpression(node, last = true) {
     const {type, object, property, computed} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
-    this.byteCode.push(0x80 | (computed << 2));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
+    this.binary += String.fromCharCode(0x80 | (computed << 2));
     this[object.type](object, false);
     this[property.type](property);
   }
@@ -636,7 +572,7 @@ const Compiler = module.exports = class Compiler {
   BindExpression(node, last = true) {
     const {type, object, callee} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
 
     if (object !== null) {
       this[object.type](object, false);
@@ -648,8 +584,7 @@ const Compiler = module.exports = class Compiler {
   ConditionalExpression(node, last = true) {
     const {type, test, alternate, consequent} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     this[test.type](test, false);
     this[consequent.type](consequent, false);
     this[alternate.type](alternate);
@@ -658,10 +593,8 @@ const Compiler = module.exports = class Compiler {
   CallExpression(node, last = true) {
     const {type, callee} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     this[callee.type](callee, node.arguments.length === 0);
-
     node.arguments.forEach((argument, index) => {
       this[argument.type](argument, index + 1 === node.arguments.length);
     });
@@ -670,10 +603,8 @@ const Compiler = module.exports = class Compiler {
   NewExpression(node, last = true) {
     const {type, callee} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     this[callee.type](callee, node.arguments.length === 0);
-
     node.arguments.forEach((argument, index) => {
       this[argument.type](argument, index + 1 === node.arguments.length);
     });
@@ -682,22 +613,20 @@ const Compiler = module.exports = class Compiler {
   SequenceExpression(node, last = true) {
     const {type, expressions = []} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     expressions.forEach((expression, index) => {
       this[expression.type](expression, index + 1 === expressions.length);
     });
 
     if (expressions.length === 0) {
-      this.byteCode.push(0x00);
+      this.binary += String.fromCharCode(0x00);
     }
   }
 
   TemplateLiteral(node, last = true) {
     const {type, quasis = [], expressions = []} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     quasis.forEach((quasi, index) => {
       const expression = expressions[index];
 
@@ -712,8 +641,7 @@ const Compiler = module.exports = class Compiler {
   TaggedTemplateExpression(node, last = true) {
     const {type, tag, quasi} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     this[tag.type](tag, false);
     this[quasi.type](quasi);
   }
@@ -721,54 +649,48 @@ const Compiler = module.exports = class Compiler {
   TemplateElement(node, last = true) {
     const {type, tail, value} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     this.encodeLiteral(value.cooked);
   }
 
   ObjectPattern(node, last = true) {
     const {type, properties = []} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     properties.forEach((property, index) => {
       this[property.type](property, index + 1 === properties.length);
     });
 
     if (properties.length === 0) {
-      this.byteCode.push(0x00);
+      this.binary += String.fromCharCode(0x00);
     }
   }
 
   ArrayPattern(node, last = true) {
     const {type, elements = []} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     elements.forEach((element, index) => {
       if (element !== null) {
         this[element.type](element, false);
       } else {
-        this.byteCode.push(0x80);
+        this.binary += String.fromCharCode(0x80);
       }
     });
-
-    this.byteCode.push(0x00);
+    this.binary += String.fromCharCode(0x00);
   }
 
   RestElement(node, last = true) {
     const {type, argument} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     this[argument.type](argument);
   }
 
   AssignmentPattern(node, last = true) {
     const {type, left, right} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     this[left.type](left, false);
     this[right.type](right);
   }
@@ -776,40 +698,33 @@ const Compiler = module.exports = class Compiler {
   ClassBody(node, last = true) {
     const {type, body = []} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     body.forEach((node, index) => {
       this[node.type](node, index + 1 === body.length);
     });
 
     if (body.length === 0) {
-      this.byteCode.push(0x00);
+      this.binary += String.fromCharCode(0x00);
     }
   }
 
   ClassMethod(node, last = true) {
     const {type, computed, kind, key, params = [], body} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
-    this.byteCode.push(0x80 | (Compiler.METHOD[kind] << 5) | (node['static'] << 4) | (computed << 2));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
+    this.binary += String.fromCharCode(0x80 | (Compiler.METHOD[kind] << 5) | (node['static'] << 4) | (computed << 2));
     this[key.type](key, false);
-
     params.forEach((param, index) => {
       this[param.type](param, false);
     });
-
     this[body.type](body);
   }
 
   ClassProperty(node, last = true) {
     const {type, computed, key, value} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
-    this.byteCode.push(0x80 | (computed << 2));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
+    this.binary += String.fromCharCode(0x80 | (computed << 2));
     this[key.type](key, false);
     this[value.type](value);
   }
@@ -817,8 +732,7 @@ const Compiler = module.exports = class Compiler {
   ClassDeclaration(node, last = true) {
     const {type, id, superClass, body} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     this[id.type](id, false);
 
     if (superClass !== null) {
@@ -831,12 +745,12 @@ const Compiler = module.exports = class Compiler {
   ClassExpression(node, last = true) {
     const {type, id, superClass, body} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
 
     if (id !== null) {
       this[id.type](id, false);
     } else {
-      this.byteCode.push(0x80);
+      this.binary += String.fromCharCode(0x80);
     }
 
     if (superClass !== null) {
@@ -849,8 +763,7 @@ const Compiler = module.exports = class Compiler {
   MetaProperty(node, last = true) {
     const {type, meta, property} = node;
 
-    this.byteCode.push((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-
+    this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     this[meta.type](meta, false);
     this[property.type](property);
   }

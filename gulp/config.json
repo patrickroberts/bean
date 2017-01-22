@@ -1,16 +1,10 @@
 {
   "paths": {
-    "project": "./",
-    "js": {
-      "entry": "./src/bean.js",
-      "dest": "./assets/js",
-      "all": "./assets/js/**/*.js"
-    }
+    "entry": "./src/bean.js",
+    "dest": "./dst"
   },
   "names": {
-    "js": {
-      "app": "bean.min.js",
-      "glob": "bean"
-    }
+    "app": "bean.min.js",
+    "glob": "bean"
   }
 }
