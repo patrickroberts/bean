@@ -155,7 +155,27 @@ $(function () {
     for (var i = 0, length = arguments.length; i < length; i++) {
       var argument = arguments[i];
 
-      array.push(argument !== undefined && argument !== null ? JSON.stringify(argument.hasOwnProperty && argument.hasOwnProperty('toString') ? argument.toString() : argument) : argument + '');
+      switch (typeof argument) {
+      case 'undefined':
+      case 'boolean':
+      case 'number':
+      case 'function':
+        argument += '';
+        break;
+      case 'object':
+        if (argument === null || argument.constructor !== Object) {
+          argument += '';
+        } else {
+          argument = JSON.stringify(argument);
+        }
+        break;
+      case 'symbol':
+      default:
+        argument = argument.toString();
+        break;
+      }
+
+      array.push(argument);
     }
 
     var output = $('#output').val();
