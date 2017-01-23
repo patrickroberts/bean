@@ -53,19 +53,19 @@ $(function () {
   }
 
   function fromHexdump(string) {
-    var pattern = /^([\da-f]{7,8})(?:: *)?((?: +[\da-f]{2}){0,16})/gim;
-    var string = '';
+    var pattern = /^([\da-f]{7,8}):?((?: *[\da-f]{2}){0,16})/gim;
+    var binary = '';
     var line, match;
 
     while ((line = pattern.exec(string)) !== null) {
-      var inner = / +([\da-f]{2})/gi;
+      var inner = / *([\da-f]{2})/gi;
 
       while ((match = inner.exec(line[2])) !== null) {
-        string += String.fromCharCode(parseInt(match[1], 16));
+        binary += String.fromCharCode(parseInt(match[1], 16));
       }
     }
 
-    return string;
+    return binary;
   }
 
   function toHexdump(binary) {
@@ -156,13 +156,14 @@ $(function () {
       var argument = arguments[i];
 
       switch (typeof argument) {
-      case 'undefined':
       case 'boolean':
-      case 'number':
       case 'function':
+      case 'number':
+      case 'undefined':
         argument += '';
         break;
       case 'object':
+      case 'string':
         if (argument === null || argument.constructor !== Object) {
           argument += '';
         } else {
