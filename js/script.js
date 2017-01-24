@@ -215,7 +215,7 @@ $(function () {
   }
 
   $('.btn-run').on('click', function clickRun(event) {
-    if ($(this).hasClass('.btn-danger')) {
+    if ($(this).hasClass('btn-danger')) {
       return;
     }
 
