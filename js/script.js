@@ -239,8 +239,8 @@ $(function () {
         }
       };
 
-      worker.onerror = function onerror(error) {
-        formatOutput(error.toString());
+      worker.onerror = function onerror(event) {
+        formatOutput(event.message);
         killWorker();
       };
 
