@@ -224,6 +224,7 @@ $(function () {
     function killWorker() {
       worker.terminate();
       toggleAction('Run');
+      $('.btn-run').off('click', killWorker);
     }
 
     $(this).one('click', killWorker);
