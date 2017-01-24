@@ -202,7 +202,6 @@ $(function () {
   function toggleAction(label) {
     var $btn = $('.btn-run')
       .toggleClass('btn-primary btn-danger')
-      .off('click', killWorker);
 
     $btn
       .find('.action-label')
@@ -216,11 +215,16 @@ $(function () {
   $('.btn-run').on('click', function clickRun(event) {
     event.preventDefault();
 
+    if ($(this).hasClass('.btn-danger')) {
+      return;
+    }
+
     function killWorker() {
       worker.terminate();
       toggleAction('Run');
     }
 
+    $(this).once('click', killWorker);
     $('#output').val('').autogrow();
 
     if ($('.btn-worker').hasClass('active') && typeof Worker === 'function') {
