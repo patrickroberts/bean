@@ -224,7 +224,7 @@ $(function () {
       toggleAction('Run');
     }
 
-    $(this).once('click', killWorker);
+    $(this).one('click', killWorker);
     $('#output').val('').autogrow();
 
     if ($('.btn-worker').hasClass('active') && typeof Worker === 'function') {
