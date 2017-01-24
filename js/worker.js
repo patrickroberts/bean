@@ -16,6 +16,6 @@ self.onmessage = function onmessage(event) {
   var program = bean.program(binary);
 
   postMessage([program(input)]);
-  postMessage();
+  postMessage('');
   close();
 }
