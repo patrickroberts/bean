@@ -194,10 +194,12 @@ $(function () {
 
     $('#output').val(output + (output.length > 0 ? '\n' : '') + array.join(', ')).autogrow();
 
-    this.apply(console, arguments);
+    log.apply(console, arguments);
   }
 
-  console.log = formatOutput.bind(console.log);
+  var log = console.log;
+
+  console.log = formatOutput;
 
   function toggleAction(label) {
     var $btn = $('.btn-run')
