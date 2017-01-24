@@ -199,17 +199,26 @@ $(function () {
 
   console.log = formatOutput.bind(console.log);
 
+  function toggleAction(label) {
+    var $btn = $('.btn-run')
+      .toggleClass('btn-primary btn-danger')
+      .off('click', killWorker);
+
+    $btn
+      .find('.action-label')
+      .text(label);
+
+    $btn
+      .find('.glyphicon')
+      .toggleClass('glyphicon-play glyphicon-stop');
+  }
+
   $('.btn-run').on('click', function clickRun(event) {
     event.preventDefault();
 
     function killWorker() {
       worker.terminate();
-
-      $('.btn-run')
-        .toggleClass('glyphicon-play glyphicon-stop btn-primary btn-danger')
-        .off('click', killWorker)
-        .find('.action-label')
-        .text('Run');
+      toggleAction('Run');
     }
 
     $('#output').val('').autogrow();
@@ -235,11 +244,7 @@ $(function () {
         input: $('#input').val()
       });
 
-      $('.btn-run')
-        .toggleClass('glyphicon-play glyphicon-stop btn-primary btn-danger')
-        .on('click', killWorker)
-        .find('.action-label')
-        .text('Kill');
+      toggleAction('Kill');
     } else if (typeof Worker !== 'function') {
       alert('Web Workers are unsupported on your browser. If your program is expected to run for more than a few seconds, use a browser that supports Web Workers.');
     } else {

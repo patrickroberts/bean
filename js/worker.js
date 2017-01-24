@@ -1,7 +1,13 @@
 importScripts('https://cdn.rawgit.com/patrickroberts/bean/master/dst/bean.min.js');
 
 console.log = function log() {
-  postMessage(arguments);
+  var args = [];
+
+  for (var i = 0; i < arguments.length; i++) {
+    args[i] = arguments[i];
+  }
+
+  postMessage(args);
 };
 
 self.onmessage = function onmessage(event) {
