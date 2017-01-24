@@ -215,8 +215,6 @@ $(function () {
   }
 
   $('.btn-run').on('click', function clickRun(event) {
-    event.preventDefault();
-
     if ($(this).hasClass('.btn-danger')) {
       return;
     }
