@@ -272,13 +272,7 @@ $(function () {
   $('.btn-permalink').on('click', function clickPermalink(event) {
     event.preventDefault();
 
-    var $this = $(this);
-    var target = $this.attr('data-target');
-    var selector = 'input#permalink:visible';
-
-    $(target)
-      .find(selector)
-      .addBack(selector)
+    $('#permalink')
       .select()
       .get(0)
       .scrollIntoView();
