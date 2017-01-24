@@ -225,7 +225,7 @@ $(function () {
       $('.btn-run').off('click', killWorker);
     }
 
-    $(this).one('click', killWorker);
+    $('.btn-run').one('click', killWorker);
     $('#output').val('').autogrow();
 
     if ($('.btn-worker').hasClass('active') && typeof Worker === 'function') {
