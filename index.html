@@ -46,13 +46,13 @@
         <div id="menu" class="collapse navbar-collapse">
           <ul class="nav navbar-nav">
             <li>
-              <a class="btn btn-link" data-toggle="run">
+              <a class="btn btn-link btn-run">
                 <span class="glyphicon glyphicon-play" aria-hidden="true"></span>
-                Run
+                <span class="action-label">Run</span>
               </a>
             </li>
             <li>
-              <a class="btn btn-link" data-toggle="permalink" data-target="#permalink">
+              <a class="btn btn-link btn-permalink">
                 <span class="glyphicon glyphicon-link" aria-hidden="true"></span>
                 Permalink
               </a>
@@ -107,11 +107,19 @@
           <div class="col-xs-12">
             <div class="input-group">
               <span class="input-group-btn">
-                <button class="btn btn-primary" type="button" data-toggle="run">
+                <button class="btn btn-primary btn-run" type="button">
                   <span class="glyphicon glyphicon-play" aria-hidden="true"></span>
-                  Run
+                  <span id="action-label">Run</span>
                 </button>
-                <a class="btn btn-default" data-toggle="permalink" data-target="#permalink">
+                <button class="btn btn-default btn-option btn-format" type="button" data-toggle="tooltip" data-container="body" data-placement="bottom" data-trigger="hover" title="Enable to format strings and object literals in output as JSON">
+                  <span class="glyphicon glyphicon-console" aria-hidden="true"></span>
+                  Format
+                </button>
+                <button class="btn btn-default btn-option btn-worker active" type="button" data-toggle="tooltip" data-container="body" data-placement="bottom" data-trigger="hover" title="(Recommended) Enable to run the program in a separate thread">
+                  <span class="glyphicon glyphicon-random" aria-hidden="true"></span>
+                  Multithread
+                </button>
+                <a class="btn btn-default btn-permalink">
                   <span class="glyphicon glyphicon-link" aria-hidden="true"></span>
                   Permalink
                 </a>

@@ -30,6 +30,14 @@ $(function () {
       $('#input').val(atob(match[1])).autogrow();
     }
 
+    if ((match = /f=1(?:&|$)/.exec(location.hash)) !== null) {
+      $('.btn-format').addClass('active');
+    }
+
+    if ((match = /w=0(?:&|$)/.exec(location.hash)) !== null) {
+      $('.btn-worker').removeClass('active');
+    }
+
     updateStatus();
   }
 
@@ -45,7 +53,9 @@ $(function () {
 
   function updateLink() {
     var input  = $('#input').val();
-    var string = '#h=' + btoa(binary) + '&i=' + btoa(input);
+    var format = $('.btn-format').hasClass('active');
+    var worker = $('.btn-worker').hasClass('active');
+    var string = '#h=' + btoa(binary) + '&i=' + btoa(input) + '&f=' + (format ? 1 : 0) + '&w=' + (worker ? 1 : 0);
 
     history.pushState({}, 'Bean Interpreter', string);
 
@@ -106,8 +116,10 @@ $(function () {
 
   $(window).bind('hashchange', parseLink);
 
+  $('[data-toggle="tooltip"]').tooltip();
+
   $('#javascript').on('change', function updateJavascript(event) {
-    $('#output').val('');
+    $('#output').val('').autogrow();
 
     try {
       var string = $('#javascript').val();
@@ -120,7 +132,7 @@ $(function () {
   });
 
   function updateBinary() {
-    $('#output').val('');
+    $('#output').val('').autogrow();
 
     try {
       var string = $('#binary').val();
@@ -135,7 +147,7 @@ $(function () {
   $('#binary').on('change', updateBinary);
 
   $('#hexdump').on('change', function updateHexdump() {
-    $('#output').val('');
+    $('#output').val('').autogrow();
 
     try {
       var string = fromHexdump($('#hexdump').val());
@@ -151,6 +163,7 @@ $(function () {
 
   function formatOutput() {
     var array = [];
+    var output = $('#output').val();
 
     for (var i = 0, length = arguments.length; i < length; i++) {
       var argument = arguments[i];
@@ -164,7 +177,7 @@ $(function () {
         break;
       case 'object':
       case 'string':
-        if (argument === null || argument.constructor !== Object) {
+        if (argument === null || argument.constructor !== Object && typeof argument !== 'string' && !Array.isArray(argument) || !$('.btn-format').hasClass('active')) {
           argument += '';
         } else {
           argument = JSON.stringify(argument);
@@ -179,30 +192,74 @@ $(function () {
       array.push(argument);
     }
 
-    var output = $('#output').val();
-
     $('#output').val(output + (output.length > 0 ? '\n' : '') + array.join(', ')).autogrow();
+
+    this.apply(console, arguments);
   }
 
-  $('[data-toggle="run"]').on('click', function click(event) {
-    var log = console.log;
-    console.log = formatOutput;
+  console.log = formatOutput.bind(console.log);
+
+  $('.btn-run').on('click', function clickRun(event) {
+    event.preventDefault();
+
+    function killWorker() {
+      worker.terminate();
+
+      $('.btn-run')
+        .toggleClass('glyphicon-play glyphicon-stop btn-primary btn-danger')
+        .off('click', killWorker)
+        .find('.action-label')
+        .text('Run');
+    }
 
     $('#output').val('').autogrow();
 
-    try {
-      var program = bean.program(binary);
-      var output = program($('#input').val());
+    if ($('.btn-worker').hasClass('active') && typeof Worker === 'function') {
+      var worker = new Worker('js/worker.js');
 
-      console.log(output);
-    } catch (error) {
-      console.log(error.toString());
+      worker.onmessage = function onmessage(event) {
+        if (event.data) {
+          formatOutput.apply(window, event.data);
+        } else {
+          killWorker();
+        }
+      };
+
+      worker.onerror = function onerror(error) {
+        formatOutput(error.toString());
+        killWorker();
+      };
+
+      worker.postMessage({
+        binary: binary,
+        input: $('#input').val()
+      });
+
+      $('.btn-run')
+        .toggleClass('glyphicon-play glyphicon-stop btn-primary btn-danger')
+        .on('click', killWorker)
+        .find('.action-label')
+        .text('Kill');
+    } else if (typeof Worker !== 'function') {
+      alert('Web Workers are unsupported on your browser. If your program is expected to run for more than a few seconds, use a browser that supports Web Workers.');
+    } else {
+      try {
+        var program = bean.program(binary);
+        var output = program($('#input').val());
+
+        console.log(output);
+      } catch (error) {
+        console.log(error.toString());
+      }
     }
-
-    console.log = log;
   });
 
-  $('[data-toggle="permalink"]').on('click', function click(event) {
+  $('.btn-option').on('click', function clickOption(event) {
+    $(this).toggleClass('active');
+    updateLink();
+  });
+
+  $('.btn-permalink').on('click', function clickPermalink(event) {
     event.preventDefault();
 
     var $this = $(this);
