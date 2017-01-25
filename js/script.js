@@ -219,17 +219,16 @@ $(function () {
       return;
     }
 
-    function killWorker() {
-      worker.terminate();
-      toggleAction('Run');
-      $('.btn-run').off('click', killWorker);
-    }
-
-    $('.btn-run').one('click', killWorker);
     $('#output').val('').autogrow();
 
     if ($('.btn-worker').hasClass('active') && typeof Worker === 'function') {
       var worker = new Worker('js/worker.js');
+
+      function killWorker() {
+        worker.terminate();
+        toggleAction('Run');
+        $('.btn-run').off('click', killWorker);
+      }
 
       worker.onmessage = function onmessage(event) {
         if (event.data) {
@@ -250,6 +249,7 @@ $(function () {
       });
 
       toggleAction('Kill');
+      $('.btn-run').one('click', killWorker);
     } else if (typeof Worker !== 'function') {
       alert('Web Workers are unsupported on your browser. If your program is expected to run for more than a few seconds, use a browser that supports Web Workers.');
     } else {
