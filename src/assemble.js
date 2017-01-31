@@ -634,6 +634,7 @@ const Assembler = module.exports = class Assembler {
   }
 
   BinaryExpression() {
+    this.tokens.push('(');
     this.decodeByte();
 
     const code = this.nextByte(true);
@@ -641,8 +642,9 @@ const Assembler = module.exports = class Assembler {
     const token = Assembler.BINARY[operator];
     const space = /^[a-z]+$/.test(token) ? ' ' : '';
 
-    this.tokens.push('(', space, token, space, ')');
+    this.tokens.push(space, token, space);
     this.decodeByte();
+    this.tokens.push(')');
   }
 
   AssignmentExpression() {
