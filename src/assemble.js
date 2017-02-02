@@ -407,14 +407,7 @@ const Assembler = module.exports = class Assembler {
   }
 
   ArrowFunctionExpression() {
-    const code = this.nextByte(true);
-    const async = (code >> 0) & 1;
-
-    if (async) {
-      this.tokens.push('async');
-    }
-
-    this.tokens.push('(');
+    this.tokens.push('(', '(');
 
     while (!this.isLast()) {
       this.decodeByte();
@@ -426,10 +419,11 @@ const Assembler = module.exports = class Assembler {
 
     this.tokens.push(')', '=>');
     this.decodeByte();
+    this.tokens.push(')');
   }
 
   YieldExpression() {
-    this.tokens.push('yield');
+    this.tokens.push('(', 'yield');
 
     const code = this.nextByte(true);
     const last = this.isLast(code);
@@ -439,15 +433,17 @@ const Assembler = module.exports = class Assembler {
       this.tokens.push('*');
     }
 
+    this.tokens.push(' ');
+
     if (!last) {
       this.decodeByte();
     }
 
-    this.tokens.push(';');
+    this.tokens.push(')');
   }
 
   AwaitExpression() {
-    this.tokens.push('await');
+    this.tokens.push('(', 'await');
 
     const code = this.nextByte();
 
@@ -456,7 +452,7 @@ const Assembler = module.exports = class Assembler {
     }
 
     this.decodeByte();
-    this.tokens.push(';');
+    this.tokens.push(')');
   }
 
   ArrayExpression() {
@@ -472,7 +468,7 @@ const Assembler = module.exports = class Assembler {
   }
 
   ObjectExpression() {
-    this.tokens.push('{');
+    this.tokens.push('(', '{');
 
     while (!this.isLast()) {
       this.decodeByte();
@@ -480,7 +476,7 @@ const Assembler = module.exports = class Assembler {
     }
 
     this.decodeByte();
-    this.tokens.push('}');
+    this.tokens.push('}', ')');
   }
 
   ObjectProperty() {
@@ -573,6 +569,8 @@ const Assembler = module.exports = class Assembler {
       (code >> 0) & 1,
     ];
 
+    this.tokens.push('(');
+
     if (async) {
       this.tokens.push('async', ' ');
     }
@@ -597,6 +595,7 @@ const Assembler = module.exports = class Assembler {
 
     this.tokens.push(')');
     this.decodeByte();
+    this.tokens.push(')');
   }
 
   UnaryExpression() {
@@ -608,6 +607,8 @@ const Assembler = module.exports = class Assembler {
     const token = Assembler.UNARY[operator];
     const space = /^[a-z]+$/.test(token) ? ' ' : '';
 
+    this.tokens.push('(');
+
     if (prefix) {
       this.tokens.push(token, space);
       this.decodeByte();
@@ -615,6 +616,8 @@ const Assembler = module.exports = class Assembler {
       this.decodeByte();
       this.tokens.push(space, token);
     }
+
+    this.tokens.push(')');
   }
 
   UpdateExpression() {
@@ -624,6 +627,8 @@ const Assembler = module.exports = class Assembler {
       (code >> 0) & 31,
     ];
 
+    this.tokens.push('(');
+
     if (prefix) {
       this.tokens.push(Assembler.UPDATE[operator]);
       this.decodeByte();
@@ -631,6 +636,8 @@ const Assembler = module.exports = class Assembler {
       this.decodeByte();
       this.tokens.push(Assembler.UPDATE[operator]);
     }
+
+    this.tokens.push(')');
   }
 
   BinaryExpression() {
@@ -702,11 +709,13 @@ const Assembler = module.exports = class Assembler {
   }
 
   ConditionalExpression() {
+    this.tokens.push('(');
     this.decodeByte();
     this.tokens.push('?');
     this.decodeByte();
     this.tokens.push(':');
     this.decodeByte();
+    this.tokens.push(')');
   }
 
   CallExpression() {
@@ -847,6 +856,7 @@ const Assembler = module.exports = class Assembler {
     case 'set':
       this.tokens.push(type, ' ');
     case 'method':
+    case 'constructor':
       if (async) {
         this.tokens.push('async');
       }
@@ -866,8 +876,6 @@ const Assembler = module.exports = class Assembler {
       }
 
       break;
-    case 'constructor':
-      this.tokens.push(type);
     }
 
     this.tokens.push('(');
@@ -918,7 +926,7 @@ const Assembler = module.exports = class Assembler {
   ClassExpression() {
     const space = this.nextByte() === 0x80 ? '' : ' ';
 
-    this.tokens.push('class', space);
+    this.tokens.push('(', 'class', space);
     this.decodeByte();
 
     if (!this.isLast()) {
@@ -927,6 +935,8 @@ const Assembler = module.exports = class Assembler {
     }
 
     this.decodeByte();
+
+    this.tokens.push(')');
   }
 
   MetaProperty() {

@@ -393,10 +393,9 @@ const Compiler = module.exports = class Compiler {
   }
 
   ArrowFunctionExpression(node, last = true) {
-    const {type, params = [], body, generator, async} = node;
+    const {type, params = [], body} = node;
 
     this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-    this.binary += String.fromCharCode(0x80 | (generator << 1) | (async << 0));
     params.forEach((param, index) => {
       this[param.type](param, false);
     });
@@ -471,7 +470,7 @@ const Compiler = module.exports = class Compiler {
   }
 
   ObjectMethod(node, last = true) {
-    const {type, key, params = [], body, async, computed, generator, kind} = node;
+    const {type, key, async, computed, generator, kind, params = [], body} = node;
 
     this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
     this.binary += String.fromCharCode(0x80 | (Compiler.METHOD[kind] << 5) | (computed << 2) | (generator << 1) | (async << 0));
@@ -713,10 +712,10 @@ const Compiler = module.exports = class Compiler {
   }
 
   ClassMethod(node, last = true) {
-    const {type, computed, kind, key, params = [], body} = node;
+    const {type, key, async, computed, generator, kind, params = [], body} = node;
 
     this.binary += String.fromCharCode((last ? 0x00 : 0x80) | nodeTypeToByteCodeMap.get(type));
-    this.binary += String.fromCharCode(0x80 | (Compiler.METHOD[kind] << 5) | (node['static'] << 4) | (computed << 2));
+    this.binary += String.fromCharCode(0x80 | (Compiler.METHOD[kind] << 5) | (node['static'] << 4) | (computed << 2) | (generator << 1) | (async << 0));
     this[key.type](key, false);
     params.forEach((param, index) => {
       this[param.type](param, false);
