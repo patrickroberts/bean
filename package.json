@@ -1,6 +1,6 @@
 {
   "name": "bean-js",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "An esoteric byte-encoded code-golfing language derived from JavaScript",
   "main": "src/bean.js",
   "repository": {

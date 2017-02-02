@@ -23,7 +23,7 @@ Example usage:
   var output = program(input);
 
   console.log(byteCount === 19);
-  console.log(source === '[a+b,A+B,_,$,];');
+  console.log(source === '[(a+b),(A+B),_,$,];');
   console.log(JSON.stringify(output) === '["34",7,["3","4"],[3,4]]');
 </script>
 ```
@@ -34,7 +34,7 @@ Example usage:
 
 _Arguments_
 
-* `source` An ISO8859-1 encoded string containing valid JavaScript source: e.g. a function or variable declaration, expression, statement, or any combination thereof. An empty input string returns an empty output string.
+* `source` An ASCII string containing valid JavaScript source: e.g. a function or variable declaration, expression, statement, or any combination thereof. An empty input string returns an empty output string.
 
 _Returns_
 
@@ -53,7 +53,7 @@ _Arguments_
 
 _Returns_
 
-* `source` An ISO8859-1 encoded binary string of equivalent JavaScript source.
+* `source` An ASCII string of equivalent JavaScript source.
 
 _Throws_
 
