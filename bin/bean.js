@@ -25,7 +25,7 @@ process.stdin.on('end', function () {
 
   function fromXxd(input) {
     var output = '';
-    var line = /^[\da-f]{8}: ((?:[\da-f]{2} ?){0,16}) {2,}(?:.{16})$/gm;
+    var line = /^[\da-f]{7,8}:?((?: *[\da-f]{2}){0,16})/gim;
     var match, index, bytes;
 
     while ((match = line.exec(input)) !== null) {
