@@ -80,19 +80,19 @@ $(function () {
 
   function toHexdump(binary) {
     var length = binary.length;
-    var string = '';
-    var charCode, row, col;
+    var rows = [];
+    var charCode, string, row, col;
 
-    for (row = 0; row < length + 16; row += 16) {
-      string += ('0000000' + Math.min(row, length).toString(16)).substr(-8);
+    for (row = 0; row < length; row += 16) {
+      string = ('0000000' + Math.min(row, length).toString(16)).substr(-8) + ':';
 
       if (row < length) {
         for (col = 0; col < Math.min(length - row, 16); col++) {
-          string += ' ' + ('0' + binary.charCodeAt(row + col).toString(16)).substr(-2);
+          string += (col % 2 ? '' : ' ') + ('0' + binary.charCodeAt(row + col).toString(16)).substr(-2);
         }
 
-        for (; col < Math.min(length, 16); col++) {
-          string += '   ';
+        for (; col < 16; col++) {
+          string += col % 2 ? '  ' : '   ';
         }
 
         string += '  ';
@@ -107,11 +107,11 @@ $(function () {
           }
         }
 
-        string += '\n';
+        rows.push(string);
       }
     }
 
-    return string;
+    return rows.join('\n');
   }
 
   $(window).bind('hashchange', parseLink);
