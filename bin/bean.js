@@ -48,7 +48,7 @@ process.stdin.on('end', function () {
   if (isFlag('raw', filetype)) {
     source = fs.readFileSync(filepath, 'binary');
   } else if (isFlag('dump', filetype)) {
-    source = fromXxd(fs.readFileSync(filepath, 'utf-8'));
+    source = fromXxd(fs.readFileSync(filepath, 'utf8'));
   } else {
     return process.exit(1);
   }
