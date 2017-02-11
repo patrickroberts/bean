@@ -2,7 +2,7 @@
   "name": "bean-js",
   "version": "1.3.1",
   "description": "An esoteric byte-encoded code-golfing language derived from JavaScript",
-  "main": "src/bean.js",
+  "main": "./dst/bean.min.js",
   "bin": {
     "bean": "./bin/bean.js"
   },
@@ -13,10 +13,10 @@
   },
   "engines": {
     "node": ">=6.9.2",
-    "npm": "^3.0.0"
+    "npm": "^4.0.0"
   },
   "scripts": {
-    "prepublish": "not-in-install && gulp browserify || in-install"
+    "prepublishOnly": "gulp"
   },
   "keywords": [
     "esoteric",
@@ -28,12 +28,11 @@
   "author": "Patrick Roberts",
   "license": "MIT",
   "dependencies": {
-    "babylon": "^6.15.0",
-    "in-publish": "^2.0.0"
   },
   "devDependencies": {
     "babel-preset-es2015": "^6.22.0",
     "babelify": "^7.3.0",
+    "babylon": "^6.15.0",
     "browserify": "^13.3.0",
     "gulp": "^3.9.1",
     "gulp-sourcemaps": "^2.4.0",
