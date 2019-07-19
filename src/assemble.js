@@ -520,7 +520,7 @@ const Assembler = module.exports = class Assembler {
       this.tokens.push(type, ' ');
     case 'method':
       if (async) {
-        this.tokens.push('async');
+        this.tokens.push('async', ' ');
       }
 
       if (generator) {
@@ -858,7 +858,7 @@ const Assembler = module.exports = class Assembler {
     case 'method':
     case 'constructor':
       if (async) {
-        this.tokens.push('async');
+        this.tokens.push('async', ' ');
       }
 
       if (generator) {
